@@ -96,8 +96,8 @@ async function initDB() {
         name TEXT,
         email TEXT,
         phone TEXT,
-        tableType TEXT,
-        LoungeGuest INTEGER,
+        tabletype TEXT,
+        loungeguest INTEGER,
         date TEXT,
         time TEXT,
         message TEXT,
@@ -158,13 +158,15 @@ async function sendTransacEmail({ fromEmail, toEmails, subject, htmlContent, tex
   const apiInstance = new Brevo.TransactionalEmailsApi();
   apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, apiKey);
 
+  const senderEmail = fromEmail || process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+
   const sendSmtpEmail = new Brevo.SendSmtpEmail();
   sendSmtpEmail.subject = subject;
   sendSmtpEmail.sender = { 
     name: process.env.HOTEL_NAME || "Malyn Hotel and Lounge", 
-    email: fromEmail || process.env.EMAIL_FROM || "info@ministaofenjoyment.com" 
+    email: senderEmail 
   };
-  sendSmtpEmail.to = (toEmails || []).map(email => ({ email }));
+  sendSmtpEmail.to = (toEmails || []).filter(Boolean).map(email => ({ email }));
   sendSmtpEmail.htmlContent = htmlContent;
   if (textContent) sendSmtpEmail.textContent = textContent;
 
@@ -173,8 +175,8 @@ async function sendTransacEmail({ fromEmail, toEmails, subject, htmlContent, tex
 
 // ---------- Contact Email Logic ----------
 async function sendContactEmails(name, email, message) {
-  const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL;
-  const admin = process.env.ADMIN_EMAIL;
+  const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+  const admin = process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
 
   try {
     // Send to hotel/admin
@@ -213,8 +215,8 @@ async function sendContactEmails(name, email, message) {
 
 // ---------- Booking Email Logic ----------
 async function sendBookingEmails(name, email, phone, room, guests, checkIn, checkOut) {
-  const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL;
-  const admin = process.env.ADMIN_EMAIL;
+  const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+  const admin = process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
 
   // --- Email to admin ---
   await sendTransacEmail({
@@ -343,26 +345,22 @@ app.post("/book", async (req, res) => {
 
 // ---------- Lounge Booking Route ----------
 app.post("/lounge", async (req, res) => {
-  const { name, email, phone, tableType, guests, date, time, message } = req.body;
-  const guestCount = guests || req.body.LoungeGuest;
-
-  if (!name || !email || !phone || !tableType || !guestCount || !date || !time) {
-    return res.json({ success: false, message: "All required fields must be filled." });
-  }
+  const { name = "Guest", email = "", phone = "", tableType = "Standard Table", guests, date = "", time = "", message = "" } = req.body;
+  const guestCount = guests || req.body.LoungeGuest || 1;
 
   console.log("📥 Lounge booking received:", req.body);
 
   try {
     // Save to database (Postgres)
     await queryRun(
-      `INSERT INTO lounge_bookings (name, email, phone, tableType, LoungeGuest, date, time, message)
+      `INSERT INTO lounge_bookings (name, email, phone, tabletype, loungeguest, date, time, message)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [name, email, phone, tableType, guestCount, date, time, message]
     );
 
     // --- ADMIN EMAIL (via Brevo helper) ---
-    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL;
-    const admin = process.env.ADMIN_EMAIL;
+    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+    const admin = process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
 
     // Admin notification
     await sendTransacEmail({
@@ -384,18 +382,20 @@ app.post("/lounge", async (req, res) => {
     });
 
     // --- AUTO REPLY TO CLIENT ---
-    await sendTransacEmail({
-      fromEmail: from,
-      toEmails: [email],
-      subject: `🍸 Lounge Booking Confirmation — ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
-      htmlContent: `
-        <h3>Hi ${name},</h3>
-        <p>We’ve received your lounge booking request for <strong>${tableType}</strong> on <strong>${date}</strong> at <strong>${time}</strong>.</p>
-        <p>Our team will contact you shortly to confirm your reservation.</p>
-        <p>— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</p>
-      `,
-      textContent: `Hi ${name}, we received your lounge booking for ${tableType} on ${date} at ${time}. We'll contact you to confirm.`
-    });
+    if (email) {
+      await sendTransacEmail({
+        fromEmail: from,
+        toEmails: [email],
+        subject: `🍸 Lounge Booking Confirmation — ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
+        htmlContent: `
+          <h3>Hi ${name},</h3>
+          <p>We’ve received your lounge booking request for <strong>${tableType}</strong> on <strong>${date}</strong> at <strong>${time}</strong>.</p>
+          <p>Our team will contact you shortly to confirm your reservation.</p>
+          <p>— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</p>
+        `,
+        textContent: `Hi ${name}, we received your lounge booking for ${tableType} on ${date} at ${time}. We'll contact you to confirm.`
+      });
+    }
 
     console.log(`✅ Lounge booking saved for ${name} (${tableType} on ${date} ${time})`);
     return res.json({ success: true });
@@ -407,24 +407,20 @@ app.post("/lounge", async (req, res) => {
 
 // ---------- Private Club Reservation Route (For club.html) ----------
 app.post("/club", async (req, res) => {
-  const { name, email, phone, eventType, date, time, message } = req.body;
-
-  if (!name || !email || !phone || !eventType || !date || !time) {
-    return res.json({ success: false, message: "All required fields must be filled." });
-  }
+  const { name = "VIP Guest", email = "", phone = "", eventType = "VIP Event", date = "", time = "", message = "" } = req.body;
 
   console.log("📥 Private Club reservation received:", req.body);
 
   try {
     // Save into lounge_bookings database table
     await queryRun(
-      `INSERT INTO lounge_bookings (name, email, phone, tableType, LoungeGuest, date, time, message)
+      `INSERT INTO lounge_bookings (name, email, phone, tabletype, loungeguest, date, time, message)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [name, email, phone, `[VIP Club] ${eventType}`, 25, date, time, message]
     );
 
-    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL;
-    const admin = process.env.ADMIN_EMAIL;
+    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+    const admin = process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
 
     // Admin Notification Email
     await sendTransacEmail({
@@ -445,18 +441,20 @@ app.post("/club", async (req, res) => {
     });
 
     // Client Auto Reply Email
-    await sendTransacEmail({
-      fromEmail: from,
-      toEmails: [email],
-      subject: `🍾 VIP Club Reservation Received — ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
-      htmlContent: `
-        <h3>Hi ${name},</h3>
-        <p>Thank you for requesting a private reservation at <strong>The VIP Club at ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</strong> for <strong>${date}</strong>.</p>
-        <p>Our executive team will reach out to confirm your booking details and bottle service preferences.</p>
-        <p>— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</p>
-      `,
-      textContent: `Hi ${name}, we received your private VIP club reservation for ${date} at ${time}. We will contact you to confirm.`
-    });
+    if (email) {
+      await sendTransacEmail({
+        fromEmail: from,
+        toEmails: [email],
+        subject: `🍾 VIP Club Reservation Received — ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
+        htmlContent: `
+          <h3>Hi ${name},</h3>
+          <p>Thank you for requesting a private reservation at <strong>The VIP Club at ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</strong> for <strong>${date}</strong>.</p>
+          <p>Our executive team will reach out to confirm your booking details and bottle service preferences.</p>
+          <p>— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</p>
+        `,
+        textContent: `Hi ${name}, we received your private VIP club reservation for ${date} at ${time}. We will contact you to confirm.`
+      });
+    }
 
     console.log(`✅ Private Club booking saved for ${name} (${eventType} on ${date} ${time})`);
     return res.json({ success: true });
@@ -495,7 +493,7 @@ app.get("/admin/login", (req, res) => {
 app.post("/admin/login", (req, res) => {
   const { username, password } = req.body || {};
   const ADMIN_USER = process.env.ADMIN_USER || "MalynAdmin";
-  const ADMIN_PASS = process.env.ADMIN_PASS || "dollress";
+  const ADMIN_PASS = process.env.ADMIN_PASS || "mallress";
 
   if (username === ADMIN_USER && password === ADMIN_PASS) {
     isLoggedIn = true;
