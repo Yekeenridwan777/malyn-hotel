@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // ---------- Basic Routes ----------
-app.get("/", (req, res) => res.send("Hotel Booking API is running..."));
+app.get("/", (req, res) => res.send("Malyn Hotel and Lounge API is running..."));
 app.get("/api/test", (req, res) => res.json({ status: "success", message: "Test route is working!" }));
 
 // ---------- Database (PostgreSQL) ----------
@@ -50,7 +50,8 @@ async function queryRun(text, params = []) {
   // returns the full result (for checking rowCount / insert id where applicable)
   return pool.query(text, params);
 }
-// Initialize tables (similar schema to your earlier SQLite version)
+
+// Initialize tables
 async function initDB() {
   try {
     await pool.query(`
@@ -104,50 +105,50 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-// ---------- Initialize Hotel Rooms ----------
-// Default rooms
-const defaultRooms = [
-  "Room 901",
-  "Room 902",
-  "Room 903",
-  "Room 904",
-  "Room 905"
-];
 
-// Delete old duplicate rooms
-await pool.query(`
-  DELETE FROM rooms
-  WHERE name IN (
-    'Room 1',
-    'Room 2',
-    'Room 3',
-    'Room 4',
-    'Room 5'
-  )
-`);
+    // ---------- Initialize Hotel Rooms (8 Rooms for Malyn Hotel) ----------
+    const defaultRooms = [
+      "Texas",
+      "Las Vegas",
+      "Alaska",
+      "Chicago",
+      "Florida",
+      "Miami",
+      "New York",
+      "California"
+    ];
 
-console.log("✅ Old duplicate rooms deleted");
+    // Delete old duplicate / test rooms if any exist
+    await pool.query(`
+      DELETE FROM rooms
+      WHERE name IN (
+        'Room 901', 'Room 902', 'Room 903', 'Room 904', 'Room 905',
+        'Room 1', 'Room 2', 'Room 3', 'Room 4', 'Room 5'
+      )
+    `);
 
-// Insert missing rooms
-for (const room of defaultRooms) {
-  await pool.query(
-    `INSERT INTO rooms (name, status)
-     VALUES ($1, 'available')
-     ON CONFLICT (name) DO NOTHING`,
-    [room]
-  );
-}
+    console.log("✅ Old duplicate rooms deleted");
 
-console.log("✅ PostgreSQL tables ready!");
+    // Insert missing rooms
+    for (const room of defaultRooms) {
+      await pool.query(
+        `INSERT INTO rooms (name, status)
+         VALUES ($1, 'available')
+         ON CONFLICT (name) DO NOTHING`,
+        [room]
+      );
+    }
 
-} catch (err) {
-  console.error("❌ DB initialization error:", err);
-}
+    console.log("✅ PostgreSQL tables ready!");
+
+  } catch (err) {
+    console.error("❌ DB initialization error:", err);
+  }
 }
 
 initDB().catch((e) => console.error("initDB failed:", e));
-// ---------- Brevo Setup ----------
 
+// ---------- Brevo Setup ----------
 async function sendTransacEmail({ fromEmail, toEmails, subject, htmlContent, textContent }) {
   const rawKey = process.env.BREVO_API_KEY || "";
   const apiKey = rawKey.trim().replace(/['"]/g, '');
@@ -160,7 +161,7 @@ async function sendTransacEmail({ fromEmail, toEmails, subject, htmlContent, tex
   const sendSmtpEmail = new Brevo.SendSmtpEmail();
   sendSmtpEmail.subject = subject;
   sendSmtpEmail.sender = { 
-    name: process.env.HOTEL_NAME || "Minister of Enjoyment", 
+    name: process.env.HOTEL_NAME || "Malyn Hotel and Lounge", 
     email: fromEmail || process.env.EMAIL_FROM || "info@ministaofenjoyment.com" 
   };
   sendSmtpEmail.to = (toEmails || []).map(email => ({ email }));
@@ -169,6 +170,7 @@ async function sendTransacEmail({ fromEmail, toEmails, subject, htmlContent, tex
 
   return apiInstance.sendTransacEmail(sendSmtpEmail);
 }
+
 // ---------- Contact Email Logic ----------
 async function sendContactEmails(name, email, message) {
   const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL;
@@ -194,12 +196,12 @@ async function sendContactEmails(name, email, message) {
     await sendTransacEmail({
       fromEmail: from,
       toEmails: [email],
-      subject: `Thanks for contacting ${process.env.HOTEL_NAME || "Minista of Enjoyment Hotel"}`,
+      subject: `Thanks for contacting ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
       htmlContent: `
         <div style="font-family:Arial,sans-serif">
           <h3>Hi ${name},</h3>
           <p>We’ve received your message and will respond as soon as possible.</p>
-          <p>— ${process.env.HOTEL_NAME || "Minista of Enjoyment Hotel"}</p>
+          <p>— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</p>
         </div>
       `
     });
@@ -244,10 +246,10 @@ Check-out: ${checkOut}`,
   await sendTransacEmail({
     fromEmail: from,
     toEmails: [email],
-    subject: `Booking Confirmation — ${process.env.HOTEL_NAME || "Minista of Enjoyment Hotel"}`,
+    subject: `Booking Confirmation — ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
     textContent: `Hello ${name},
 
-Thank you for booking with ${process.env.HOTEL_NAME || "Minista of Enjoyment Hotel"}.
+Thank you for booking with ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}.
 Here are your booking details:
 
 Room: ${room}
@@ -257,11 +259,11 @@ Check-out: ${checkOut}
 
 We look forward to your stay!
 
-— ${process.env.HOTEL_NAME || "Minista of Enjoyment Hotel"}`,
+— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
     htmlContent: `
       <div style="font-family:Arial,sans-serif">
         <h3>Hello ${name},</h3>
-        <p>Thank you for booking with <strong>${process.env.HOTEL_NAME || "Minista of Enjoyment Hotel"}</strong>.</p>
+        <p>Thank you for booking with <strong>${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</strong>.</p>
         <p>Here are your booking details:</p>
         <ul>
           <li><strong>Room:</strong> ${room}</li>
@@ -270,7 +272,7 @@ We look forward to your stay!
           <li><strong>Check-out:</strong> ${checkOut}</li>
         </ul>
         <p>We look forward to your stay!</p>
-        <p>— ${process.env.HOTEL_NAME || "Minister of Enjoyment Hotel"}</p>
+        <p>— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</p>
       </div>`
   });
 }
@@ -341,9 +343,10 @@ app.post("/book", async (req, res) => {
 
 // ---------- Lounge Booking Route ----------
 app.post("/lounge", async (req, res) => {
-  const { name, email, phone, tableType, LoungeGuest, date, time, message } = req.body;
+  const { name, email, phone, tableType, guests, date, time, message } = req.body;
+  const guestCount = guests || req.body.LoungeGuest;
 
-  if (!name || !email || !phone || !tableType || !LoungeGuest || !date || !time) {
+  if (!name || !email || !phone || !tableType || !guestCount || !date || !time) {
     return res.json({ success: false, message: "All required fields must be filled." });
   }
 
@@ -354,7 +357,7 @@ app.post("/lounge", async (req, res) => {
     await queryRun(
       `INSERT INTO lounge_bookings (name, email, phone, tableType, LoungeGuest, date, time, message)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [name, email, phone, tableType, LoungeGuest, date, time, message]
+      [name, email, phone, tableType, guestCount, date, time, message]
     );
 
     // --- ADMIN EMAIL (via Brevo helper) ---
@@ -372,24 +375,24 @@ app.post("/lounge", async (req, res) => {
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Phone:</strong> ${phone}</p>
         <p><strong>Booking Type:</strong> ${tableType}</p>
-        <p><strong>Guest Number:</strong> ${LoungeGuest}</p>
+        <p><strong>Guest Number:</strong> ${guestCount}</p>
         <p><strong>Date:</strong> ${date}</p>
         <p><strong>Time:</strong> ${time}</p>
         <p><strong>Message:</strong> ${message || "No message provided"}</p>
       `,
-      textContent: `Lounge booking: ${tableType} - ${name} - ${email} - ${phone} - ${LoungeGuest} - ${date} ${time}`
+      textContent: `Lounge booking: ${tableType} - ${name} - ${email} - ${phone} - ${guestCount} - ${date} ${time}`
     });
 
     // --- AUTO REPLY TO CLIENT ---
     await sendTransacEmail({
       fromEmail: from,
       toEmails: [email],
-      subject: `🍸 Lounge Booking Confirmation — ${process.env.HOTEL_NAME || "Minista of Enjoyment Hotel"}`,
+      subject: `🍸 Lounge Booking Confirmation — ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
       htmlContent: `
         <h3>Hi ${name},</h3>
         <p>We’ve received your lounge booking request for <strong>${tableType}</strong> on <strong>${date}</strong> at <strong>${time}</strong>.</p>
         <p>Our team will contact you shortly to confirm your reservation.</p>
-        <p>— ${process.env.HOTEL_NAME || "Minista of Enjoyment Lounge and Suite"}</p>
+        <p>— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</p>
       `,
       textContent: `Hi ${name}, we received your lounge booking for ${tableType} on ${date} at ${time}. We'll contact you to confirm.`
     });
@@ -402,6 +405,67 @@ app.post("/lounge", async (req, res) => {
   }
 });
 
+// ---------- Private Club Reservation Route (For club.html) ----------
+app.post("/club", async (req, res) => {
+  const { name, email, phone, eventType, date, time, message } = req.body;
+
+  if (!name || !email || !phone || !eventType || !date || !time) {
+    return res.json({ success: false, message: "All required fields must be filled." });
+  }
+
+  console.log("📥 Private Club reservation received:", req.body);
+
+  try {
+    // Save into lounge_bookings database table
+    await queryRun(
+      `INSERT INTO lounge_bookings (name, email, phone, tableType, LoungeGuest, date, time, message)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [name, email, phone, `[VIP Club] ${eventType}`, 25, date, time, message]
+    );
+
+    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL;
+    const admin = process.env.ADMIN_EMAIL;
+
+    // Admin Notification Email
+    await sendTransacEmail({
+      fromEmail: from,
+      toEmails: [admin],
+      subject: `🍾 Private Club Reservation Request: ${eventType}`,
+      htmlContent: `
+        <h2>Private VIP Club Reservation</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Phone:</strong> ${phone}</p>
+        <p><strong>Occasion:</strong> ${eventType}</p>
+        <p><strong>Date:</strong> ${date}</p>
+        <p><strong>Time:</strong> ${time}</p>
+        <p><strong>Special Requests:</strong> ${message || "None provided"}</p>
+      `,
+      textContent: `Private Club Reservation: ${eventType} - ${name} - ${email} - ${phone} - ${date} ${time}`
+    });
+
+    // Client Auto Reply Email
+    await sendTransacEmail({
+      fromEmail: from,
+      toEmails: [email],
+      subject: `🍾 VIP Club Reservation Received — ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}`,
+      htmlContent: `
+        <h3>Hi ${name},</h3>
+        <p>Thank you for requesting a private reservation at <strong>The VIP Club at ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</strong> for <strong>${date}</strong>.</p>
+        <p>Our executive team will reach out to confirm your booking details and bottle service preferences.</p>
+        <p>— ${process.env.HOTEL_NAME || "Malyn Hotel and Lounge"}</p>
+      `,
+      textContent: `Hi ${name}, we received your private VIP club reservation for ${date} at ${time}. We will contact you to confirm.`
+    });
+
+    console.log(`✅ Private Club booking saved for ${name} (${eventType} on ${date} ${time})`);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error saving club reservation:", err && (err.message || err));
+    return res.json({ success: false, message: "Server error" });
+  }
+});
+
 // ---------- ADMIN (simple) ----------
 let isLoggedIn = false;
 
@@ -409,7 +473,7 @@ app.get("/admin/login", (req, res) => {
   res.send(`
     <html>
       <head>
-        <title>Admin Login</title>
+        <title>Admin Login - Malyn Hotel</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
       </head>
       <body class="d-flex justify-content-center align-items-center vh-100 bg-light">
@@ -430,7 +494,7 @@ app.get("/admin/login", (req, res) => {
 
 app.post("/admin/login", (req, res) => {
   const { username, password } = req.body || {};
-  const ADMIN_USER = process.env.ADMIN_USER || "Minista of enjoyment";
+  const ADMIN_USER = process.env.ADMIN_USER || "MalynAdmin";
   const ADMIN_PASS = process.env.ADMIN_PASS || "dollress";
 
   if (username === ADMIN_USER && password === ADMIN_PASS) {
@@ -460,7 +524,7 @@ function renderPage(title, heading, headers, rows) {
       <body class="container py-4">
         <nav class="mb-4">
           <a href="/admin/bookings" class="btn btn-primary me-2">📑 Bookings</a>
-          <a href="/admin/lounge_bookings" class="btn btn-warning me-2">🍸 Lounge</a>
+          <a href="/admin/lounge_bookings" class="btn btn-warning me-2">🍸 Lounge & Club</a>
           <a href="/admin/rooms" class="btn btn-success me-2">🏨 Rooms</a>
           <a href="/admin/contacts" class="btn btn-info me-2">📧 Contacts</a>
           <a href="/admin/logout" class="btn btn-danger">🚪 Logout</a>
@@ -715,7 +779,8 @@ app.post("/admin/rooms/toggle/:id", requireLogin, async (req, res) => {
     res.status(500).send("Error toggling room status");
   }
 });
-// ---------- ADMIN: Lounge Bookings ----------
+
+// ---------- ADMIN: Lounge & Club Bookings ----------
 app.get("/admin/lounge_bookings", requireLogin, async (req, res) => {
   try {
     const rows = await queryAll("SELECT * FROM lounge_bookings ORDER BY created_at DESC");
@@ -736,14 +801,14 @@ app.get("/admin/lounge_bookings", requireLogin, async (req, res) => {
           <form method="POST" action="/admin/lounge_bookings/toggle/${r.id}" style="display:inline;">
             <button type="submit" class="btn btn-sm ${r.status === 'confirmed' ? 'btn-secondary' : 'btn-success'}">${r.status === 'confirmed' ? 'Mark Pending' : 'Confirm'}</button>
           </form>
-          <form method="POST" action="/admin/lounge_bookings/delete/${r.id}" style="display:inline;" onsubmit="return confirm('Delete this lounge booking?');">
+          <form method="POST" action="/admin/lounge_bookings/delete/${r.id}" style="display:inline;" onsubmit="return confirm('Delete this lounge/club booking?');">
             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
           </form>
         </td>
       </tr>`).join("");
 
-    res.send(renderPage("Lounge Bookings", "🍸 All Lounge Bookings", 
-    ["ID","Name","Email","Phone","Table Type","Guests","Date","Time","Message","Status","Created","Actions"], rowsHtml));
+    res.send(renderPage("Lounge & Club Bookings", "🍸 All Lounge & Club Bookings", 
+    ["ID","Name","Email","Phone","Table / Event Type","Guests","Date","Time","Message","Status","Created","Actions"], rowsHtml));
   } catch (err) {
     console.error("❌ Admin lounge error:", err);
     res.status(500).send("Error loading lounge bookings");
@@ -772,7 +837,8 @@ app.post("/admin/lounge_bookings/toggle/:id", requireLogin, async (req, res) => 
     res.status(500).send("Error toggling");
   }
 });
-// diagnostic logs
+
+// Diagnostic logs
 console.log("💾 Pool config present:", !!process.env.DATABASE_URL);
 
 // ---------- Start server ----------
