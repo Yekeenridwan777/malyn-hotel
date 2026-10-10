@@ -158,7 +158,7 @@ async function sendTransacEmail({ fromEmail, toEmails, subject, htmlContent, tex
   const apiInstance = new Brevo.TransactionalEmailsApi();
   apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, apiKey);
 
-  const senderEmail = fromEmail || process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+  const senderEmail = fromEmail || process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "info@malynhotel.com";
 
   const sendSmtpEmail = new Brevo.SendSmtpEmail();
   sendSmtpEmail.subject = subject;
@@ -175,8 +175,8 @@ async function sendTransacEmail({ fromEmail, toEmails, subject, htmlContent, tex
 
 // ---------- Contact Email Logic ----------
 async function sendContactEmails(name, email, message) {
-  const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
-  const admin = process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+  const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "info@malynhotel.com";
+  const admin = process.env.ADMIN_EMAIL || "info@malynhotel.com";
 
   try {
     // Send to hotel/admin
@@ -215,8 +215,8 @@ async function sendContactEmails(name, email, message) {
 
 // ---------- Booking Email Logic ----------
 async function sendBookingEmails(name, email, phone, room, guests, checkIn, checkOut) {
-  const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
-  const admin = process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+  const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "info@malynhotel.com";
+  const admin = process.env.ADMIN_EMAIL || "info@malynhotel.com";
 
   // --- Email to admin ---
   await sendTransacEmail({
@@ -359,8 +359,8 @@ app.post("/lounge", async (req, res) => {
     );
 
     // --- ADMIN EMAIL (via Brevo helper) ---
-    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
-    const admin = process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "info@malynhotel.com";
+    const admin = process.env.ADMIN_EMAIL || "info@malynhotel.com";
 
     // Admin notification
     await sendTransacEmail({
@@ -419,8 +419,8 @@ app.post("/club", async (req, res) => {
       [name, email, phone, `[VIP Club] ${eventType}`, 25, date, time, message]
     );
 
-    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
-    const admin = process.env.ADMIN_EMAIL || "yekeenridwan777@gmail.com";
+    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "info@malynhotel.com";
+    const admin = process.env.ADMIN_EMAIL || "info@malynhotel.com";
 
     // Admin Notification Email
     await sendTransacEmail({
