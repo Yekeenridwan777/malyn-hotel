@@ -358,9 +358,9 @@ app.post("/lounge", async (req, res) => {
       [name, email, phone, tableType, guestCount, date, time, message]
     );
 
-    // --- ADMIN EMAIL (via Brevo helper) ---
-    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "info@malynhotel.com";
-    const admin = process.env.ADMIN_EMAIL || "info@malynhotel.com";
+   // --- ADMIN EMAIL (via Brevo helper) ---
+const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "malynhotel.info@gmail.com";
+const admin = process.env.ADMIN_EMAIL || "malynhotel.info@gmail.com";
 
     // Admin notification
     await sendTransacEmail({
