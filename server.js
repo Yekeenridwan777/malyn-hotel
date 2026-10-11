@@ -419,8 +419,8 @@ app.post("/club", async (req, res) => {
       [name, email, phone, `[VIP Club] ${eventType}`, 25, date, time, message]
     );
 
-    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "info@malynhotel.com";
-    const admin = process.env.ADMIN_EMAIL || "info@malynhotel.com";
+    const from = process.env.EMAIL_FROM || process.env.ADMIN_EMAIL || "malynhotel.info@gmail.com";
+    const admin = process.env.ADMIN_EMAIL || "malynhotel.info@gmail.com";
 
     // Admin Notification Email
     await sendTransacEmail({
@@ -439,6 +439,7 @@ app.post("/club", async (req, res) => {
       `,
       textContent: `Private Club Reservation: ${eventType} - ${name} - ${email} - ${phone} - ${date} ${time}`
     });
+    console.log("✅ Club admin email sent to:", admin);
 
     // Client Auto Reply Email
     if (email) {
@@ -454,6 +455,7 @@ app.post("/club", async (req, res) => {
         `,
         textContent: `Hi ${name}, we received your private VIP club reservation for ${date} at ${time}. We will contact you to confirm.`
       });
+      console.log("✅ Club client auto-reply sent to:", email);
     }
 
     console.log(`✅ Private Club booking saved for ${name} (${eventType} on ${date} ${time})`);
